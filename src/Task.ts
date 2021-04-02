@@ -1,5 +1,5 @@
 import moment from 'moment';
-import cryptoRandomString  from 'crypto-random-string';
+var randomstring = require("randomstring");
 
 const logTags:any = {};
 const listeners: ((task: Task) => void)[] = [];
@@ -115,7 +115,7 @@ export class Task {
     constructor(purpose: string, parent?:Task) {
         this.purpose = purpose;
         this.parent = parent;
-        this.id = cryptoRandomString({length: 7, type: 'alphanumeric'});
+        this.id = randomstring({length: 7, type: 'alphanumeric'});
         this.warnings = [];
         this.errors = [];
         this.args = [];
