@@ -120,8 +120,8 @@ class Tally(Monitor):
         for key in self.consumed.keys():
             tag = '.'.join([ str(scope) for scope in self.scopes ] + [key])
             result[tag] = {
-                'count': self.consumed.get(tag),
-                'perSecond': self.consumed.get(tag) / seconds
+                'count': self.consumed.get(key),
+                'perSecond': self.consumed.get(key) / seconds
             }
         return result
 
