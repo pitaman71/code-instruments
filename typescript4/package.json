@@ -1,5 +1,5 @@
 {
-  "name": "typescript-task-tuning",
+  "name": "code-instruments",
   "version": "1.0.0",
   "description": "Typescript class for measuring, isolating, and optimizing system performance issues.",
   "main": "lib/index.js",
