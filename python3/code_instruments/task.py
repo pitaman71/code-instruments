@@ -394,30 +394,30 @@ class Task:
             return_value = f"{return_value[0:limit-4]} ..."
         return return_value
 
-def function(parent: Monitor = None, **deco_kwargs):
+def function(parent_: Monitor = None, **deco_kwargs):
     """Decorate a function as a trackable task"""
     def wrap_function(func):
         @functools.wraps(func)
-        def call_function_task(parent, *call_args,**call_kwargs):
+        def call_function_task(*call_args,**call_kwargs):
             purpose = str(Call(inspect.currentframe().f_back, func))
-            parent = parent or __tally__
+            parent = parent_ or __tally__
             return Task(purpose,**deco_kwargs).notifies(parent).returns(call_args,call_kwargs,
                 lambda: func(*call_args,**call_kwargs)
             )
-        return functools.partial(call_function_task, parent)
+        return call_function_task
     return wrap_function
 
-def generator(parent: Monitor = None, **deco_kwargs):
+def generator(parent_: Monitor = None, **deco_kwargs):
     """Decorate a function as a trackable task"""
     def wrap_function(func):
         @functools.wraps(func)
-        def call_function_task(parent, *call_args,**call_kwargs):
+        def call_function_task(*call_args,**call_kwargs):
             purpose = str(Call(inspect.currentframe().f_back, func))
-            parent = parent or __tally__
+            parent = parent_ or __tally__
             return Task(purpose,**deco_kwargs).notifies(parent).generates(call_args,call_kwargs,
                 lambda: func(*call_args,**call_kwargs)
             )
-        return functools.partial(call_function_task, parent)
+        return call_function_task
     return wrap_function
 
 def method(*deco_args,**deco_kwargs):
