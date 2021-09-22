@@ -185,7 +185,8 @@ class Task:
 
     def __init__(self,
         purpose: str=None,
-        parent: Task=None
+        parent: Task=None,
+        logger: typing.Union[ typing.Callable[ [str], None ], None ]=None
     ):
         self.purpose = purpose
         self.parent_id = None if parent is None else parent.id_
@@ -207,7 +208,7 @@ class Task:
         self.exception = None
 
         self.json_formatter = None
-        self.logger = None
+        self.logger = logger
         self.log_enable = None
 
     def to_log_line(self, verb: str, body: str = None) -> str:
@@ -225,9 +226,9 @@ class Task:
         if use_logger is not None:
             use_logger(self.to_log_line('BEGIN '))
             if self.args is not None:
-                use_logger(self.to_log_line('ARGS  ', json.dumps(self.args)))
+                use_logger(self.to_log_line('ARGS  ', json.dumps(self.args, default=str)))
             if self.kwargs is not None:
-                use_logger(self.to_log_line('KWARGS ', json.dumps(self.kwargs)))
+                use_logger(self.to_log_line('KWARGS ', json.dumps(self.kwargs, default=str)))
         for listener in self.listeners:
             listener.on_start(self)
         return self
@@ -235,7 +236,7 @@ class Task:
     def on_yield(self, value):
         use_logger = self.logger if (self.log_enable is None or self.log_enable()) else None
         if use_logger is not None and value is not None:
-            use_logger(self.to_log_line('YIELD ', json.dumps(value)))
+            use_logger(self.to_log_line('YIELD ', json.dumps(value, default=str)))
         for listener in self.listeners:
             listener.on_yield(self)
         return self
@@ -249,7 +250,7 @@ class Task:
         if use_logger is not None:
             use_logger(self.to_log_line('END   '))
             if self.return_value is not None:
-                use_logger(self.to_log_line('RETURN ', json.dumps(self.return_value)))
+                use_logger(self.to_log_line('RETURN ', json.dumps(self.return_value, default=str)))
         for listener in self.listeners:
             listener.on_success(self)
         return self
