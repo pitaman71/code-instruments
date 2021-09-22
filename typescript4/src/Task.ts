@@ -227,7 +227,7 @@ export class Task {
             const returned = callable();
             this.onSuccess(returned);
             return returned;
-        } catch(error) {
+        } catch(error: any) {
             this.onFailure(error);
             throw error;
         }
