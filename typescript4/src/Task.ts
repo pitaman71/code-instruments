@@ -124,7 +124,7 @@ export class Task {
     constructor(purpose: string, parent?:Task) {
         this.purpose = purpose;
         this.parent_id = parent ? parent.id_ : undefined;
-        this.id_  = randomstring({length: 7, type: 'alphanumeric'});
+        this.id_  = 'XXX'; //randomstring && randomstring({length: 7, type: 'alphanumeric'});
 
         this.status = Status.Unknown;
         this.consumed = {};
@@ -303,7 +303,7 @@ export class Task {
     }
 }
 
-const method = (...deco_args: any[]) => (
+export const method = (...deco_args: any[]) => (
     target: Object,
     propertyKey: string,
     descriptor: PropertyDescriptor
