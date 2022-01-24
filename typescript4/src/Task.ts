@@ -99,6 +99,19 @@ export class Tally implements Monitor {
     }
 }
 
+// https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
+
+function makeid(length: number) {
+    var result           = '';
+    var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charactersLength = characters.length;
+    for ( var i = 0; i < length; i++ ) {
+      result += characters.charAt(Math.floor(Math.random() * 
+ charactersLength));
+   }
+   return result;
+}
+
 export class Task {
     id_: string;
     parent_id: string|undefined;
@@ -124,7 +137,7 @@ export class Task {
     constructor(purpose: string, parent?:Task) {
         this.purpose = purpose;
         this.parent_id = parent ? parent.id_ : undefined;
-        this.id_  = 'XXX'; //randomstring && randomstring({length: 7, type: 'alphanumeric'});
+        this.id_  = makeid(7);
 
         this.status = Status.Unknown;
         this.consumed = {};
