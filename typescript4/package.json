@@ -1,11 +1,12 @@
 {
   "name": "@pitaman71/omniglot-code-instruments",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Typescript class for measuring, isolating, and optimizing system performance issues.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
-    "lib/**/*"
+    "lib/**/*",
+    "src/**/*"
   ],
   "scripts": {
     "build": "tsc",
