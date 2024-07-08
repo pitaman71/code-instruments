@@ -246,13 +246,18 @@ export class Task {
 
     promises<ReturnT>(args: any, callable: () => Promise<ReturnT>): Promise<ReturnT> {
         this.onStart(args);
-        return callable().then((returned: ReturnT) => {
-            this.onSuccess(returned);
-            return returned;
-        }).catch((error: Error) => {
+        try {
+            return callable().then((returned: ReturnT) => {
+                this.onSuccess(returned);
+                return returned;
+            }).catch((error) => {
+                this.onFailure(error);
+                return Promise.reject(error);
+            });
+        } catch(error: any) {
             this.onFailure(error);
             return Promise.reject(error);
-        });
+        }
     }
 
     info(... messages: Array<string>) {
