@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon';
+import stringify from 'json-stringify-safe';
 
 export enum Status {
     Unknown = 0,
@@ -110,7 +111,13 @@ function makeid(length: number) {
    return result;
 }
 
-export class Task {
+export interface Reporter {
+    info(... messages: Array<string>): void;
+    warning(... messages: Array<string>): void;
+    error(... messages: Array<string>): void;
+};
+
+export class Task implements Reporter {
     id_: string;
     parent_id: string|undefined;
     purpose: string;
@@ -168,7 +175,7 @@ export class Task {
         if(useLogger) {
             useLogger(this.toLogLine('BEGIN '));
             if(this.args) {
-                useLogger(this.toLogLine('ARGS  ', JSON.stringify(this.args)));
+                useLogger(this.toLogLine('ARGS  ', stringify(this.args)));
             }
         }
         this.listeners.forEach((listener: Monitor) => listener.onStart(this))
@@ -178,7 +185,7 @@ export class Task {
     private onYield(value: any): this {
         const useLogger = (!this.logEnable || this.logEnable()) ? this.logger : undefined;
         if(useLogger && value) {
-            useLogger(this.toLogLine('YIELD ', JSON.stringify(value)));
+            useLogger(this.toLogLine('YIELD ', stringify(value)));
         }
         this.listeners.forEach((listener: Monitor) => listener.onYield(this))
         return this;
@@ -193,7 +200,7 @@ export class Task {
         if(useLogger) {
             useLogger(this.toLogLine('END   '));
             if(this.returnValue) {
-                useLogger(this.toLogLine('RETURN ', JSON.stringify(this.returnValue)));
+                useLogger(this.toLogLine('RETURN ', stringify(this.returnValue)));
             }
         }
         this.listeners.forEach((listener: Monitor) => listener.onSuccess(this))
@@ -208,6 +215,7 @@ export class Task {
         const useLogger = (!this.logEnable || this.logEnable()) ? this.logger : undefined;
         if(useLogger) {
             useLogger(this.toLogLine('FAIL  '));
+            useLogger(this.toLogLine(`ERROR ${exception}`));
             if(exception.stack) {
                 useLogger(this.toLogLine('STACK ', exception.stack));
             }
@@ -232,10 +240,10 @@ export class Task {
         return this;
     }
 
-    returns<ReturnT>(args: any, callable: () => ReturnT): ReturnT {
+    returns<ReturnT>(args: any, callable: (reporter: Reporter) => ReturnT): ReturnT {
         try {
             this.onStart(args);
-            const returned = callable();
+            const returned = callable(this);
             this.onSuccess(returned);
             return returned;
         } catch(error: any) {
@@ -244,10 +252,10 @@ export class Task {
         }
     }
 
-    promises<ReturnT>(args: any, callable: () => Promise<ReturnT>): Promise<ReturnT> {
+    promises<ReturnT>(args: any, callable: (reporter: Reporter) => Promise<ReturnT>): Promise<ReturnT> {
         this.onStart(args);
         try {
-            return callable().then((returned: ReturnT) => {
+            return callable(this).then((returned: ReturnT) => {
                 this.onSuccess(returned);
                 return returned;
             }).catch((error) => {
