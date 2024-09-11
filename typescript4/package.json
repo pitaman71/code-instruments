@@ -1,6 +1,6 @@
 {
   "name": "typescript-code-instruments",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "description": "Task logging library for typescript.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
