@@ -1,14 +1,15 @@
 {
-  "name": "@pitaman71/omniglot-code-instruments",
-  "version": "0.8.11",
-  "description": "Typescript class for measuring, isolating, and optimizing system performance issues.",
+  "name": "typescript-code-instruments",
+  "version": "1.0.4",
+  "description": "Task logging library for typescript.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
-    "lib/**/*",
-    "src/**/*"
+    "docs/**/*",
+    "lib/**/*"
   ],
   "scripts": {
+    "doc": "typedoc src/index.ts",
     "build": "tsc",
     "start": "tsc -w",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
@@ -23,6 +24,7 @@
     "prettier": "^2.2.1",
     "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
+    "typedoc": "^0.26.7",
     "typescript": "^5.3.3"
   },
   "dependencies": {

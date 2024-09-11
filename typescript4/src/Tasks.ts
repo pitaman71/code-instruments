@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon';
 import stringify from 'json-stringify-safe';
 
+/** 4-state representation of Task status */
 export enum Status {
     Unknown = 0,
     Run = 1,
@@ -8,6 +9,7 @@ export enum Status {
     Succeed = 3
 }
 
+/** Improve log readability by using emojis to represent status */
 const statusToEmoji = {
     [Status.Unknown]: "🤷",
     [Status.Run]: "🏃",
@@ -33,17 +35,17 @@ export class Scope {
 
 export interface Monitor {
     reset(): void;
-    onStart(task: Task): void;
-    onYield(task: Task): void;
-    onSuccess(task: Task): void;
-    onFailure(task: Task): void;
+    onStart(task: Instrument): void;
+    onYield(task: Instrument): void;
+    onSuccess(task: Instrument): void;
+    onFailure(task: Instrument): void;
 }
 
 export class Tally implements Monitor {
     scopes: Array<Scope>;
     startTime: DateTime;
     consumed: { [key:string]: number};
-    pending: Array<Task>;
+    pending: Array<Instrument>;
     listeners: Array<Monitor>;
 
     constructor(... scopes: Array<Scope>) {
@@ -69,19 +71,19 @@ export class Tally implements Monitor {
         return this;
     }
 
-    onStart(task: Task) {
+    onStart(task: Instrument) {
         this.listeners.forEach((listener: Monitor) => listener.onStart(task));
     }
 
-    onYield(task: Task) {
+    onYield(task: Instrument) {
         this.listeners.forEach((listener: Monitor) => listener.onYield(task));
     }
 
-    onSuccess(task: Task) {
+    onSuccess(task: Instrument) {
         this.listeners.forEach((listener: Monitor) => listener.onSuccess(task));
     }
 
-    onFailure(task: Task) {
+    onFailure(task: Instrument) {
         this.listeners.forEach((listener: Monitor) => listener.onFailure(task));
     }
 
@@ -111,35 +113,66 @@ function makeid(length: number) {
    return result;
 }
 
+/** 
+ * Callback interface so that instrumented code can add extra
+ * messages to the log as the task executes.
+ */
 export interface Reporter {
     info(... messages: Array<string>): void;
     warning(... messages: Array<string>): void;
     error(... messages: Array<string>): void;
 };
 
-export class Task implements Reporter {
+/** 
+ * Programmers should instantiate this class to instrument an invokeable tyepscript statement scope.
+ */
+export class Instrument<PayloadType=any> implements Reporter {
+    /** unique invocation identifer, usually 5-6 alphanumeric digits */
     id_: string;
+
+    /** invocation identifier for the parent of a nested task */
     parent_id: string|undefined;
-    purpose: string;
-    startTime?: DateTime;
-    endTime?: DateTime;
-    status: Status;
-    consumed: { [key:string]: number } = {};
+
+    /** programmer-defined array of strings which are used to categorize and group related tasks */
     tags: string[] = [];
+
+    /** short description of the purpose of this task, what it is doing */
+    purpose: string;
+
+    /** when the task started */
+    startTime?: DateTime;
+
+    /** when the task returned synchronously or resolved its async promise */
+    endTime?: DateTime;
+
+    /** current execution status of this Task */
+    status: Status;
+
+    /** programmer-defined map of metric names to units consumed */
+    consumed: { [key:string]: number } = {};
+
+    /** array of user-defined registered Monitor objects which receive callbacks when methdos are called on this Task instrument */
     listeners: Array<Monitor> = [];
 
-    warnings: any[];
-    errors: any[];
+    /** arguments that were provided by the caller when the instrumented code was invoked */
     args: Array<any>;
-    kwargs: { [key:string]: any };
+
+    /** value that was synchronously returned by the function or value of the resolved promise for async */
     returnValue?: any;
+
+    /** the exception (or promise rejection) that caused execution of the instrumented code to halt execution */
     exception?: any;
 
-    jsonFormatter?: (obj:any) => any;
+    payloadFormatter?: (payload: PayloadType) => any;
     logger?: (message: string) => void;
     logEnable?: () => boolean;
 
-    constructor(purpose: string, parent?:Task) {
+    constructor(
+        /** short description of the purpose of this task, what it is doing */
+        purpose: string, 
+        /** parent task, if this is a nested task */
+        parent?:Instrument
+    ) {
         this.purpose = purpose;
         this.parent_id = parent ? parent.id_ : undefined;
         this.id_  = makeid(7);
@@ -149,10 +182,7 @@ export class Task implements Reporter {
         this.tags = [];
         this.listeners = [];
 
-        this.warnings = [];
-        this.errors = [];
         this.args = [];
-        this.kwargs = {};
     }
 
     toLogLine(verb: string, body?: string):string {
@@ -166,10 +196,10 @@ export class Task implements Reporter {
         return this;
     }
 
-    private onStart(args: any): this {
+    private onStart(args: PayloadType): this {
         this.startTime = DateTime.now();
         this.status = Status.Run;
-        this.args = this.jsonFormatter ? this.jsonFormatter(args) : args;
+        this.args = this.payloadFormatter ? this.payloadFormatter(args) : args;
         this.consumed['outcome.hasStarted'] = (this.consumed['outcome.hasStarted'] || 0) + 1;
         const useLogger = (!this.logEnable || this.logEnable()) ? this.logger : undefined;
         if(useLogger) {
@@ -191,10 +221,10 @@ export class Task implements Reporter {
         return this;
     }
 
-    private onSuccess(returnValue: any): this {
+    private onSuccess(returnValue: PayloadType): this {
         this.endTime = DateTime.now();
         this.status = Status.Succeed;
-        this.returnValue = this.jsonFormatter ? this.jsonFormatter(returnValue) : returnValue;
+        this.returnValue = this.payloadFormatter ? this.payloadFormatter(returnValue) : returnValue;
         this.consumed['outcome.hasSucceeded'] = (this.consumed['outcome.hasSucceeded'] || 0) + 1;
         const useLogger = (!this.logEnable || this.logEnable()) ? this.logger : undefined;
         if(useLogger) {
@@ -224,23 +254,26 @@ export class Task implements Reporter {
         return this;
     }
 
-    format(jsonFormatter: (obj:any) => any) {
-        this.jsonFormatter = jsonFormatter;
+    format(payloadFormatter: (payload: PayloadType) => any) {
+        this.payloadFormatter = payloadFormatter;
         return this;
     }
 
+    /** Caller should use this method during task setup to associate a user-defined set of string-valued tags with this task */
     withTags(...tags:string[]) {
         this.tags = tags;
         return this;
     }
 
+    /** Caller should use this method during task setup to configure output logging */
     logs(logger: (message: string) => void, logEnable?: () => boolean): this {
         this.logger = logger;
         this.logEnable = logEnable;
         return this;
     }
 
-    returns<ReturnT>(args: any, callable: (reporter: Reporter) => ReturnT): ReturnT {
+    /** Caller should use this method to wrap the body of a synchronous function or method */
+    returns<ReturnT extends PayloadType>(args: any, callable: (reporter: Reporter) => ReturnT): ReturnT {
         try {
             this.onStart(args);
             const returned = callable(this);
@@ -252,7 +285,8 @@ export class Task implements Reporter {
         }
     }
 
-    promises<ReturnT>(args: any, callable: (reporter: Reporter) => Promise<ReturnT>): Promise<ReturnT> {
+    /** Caller should use this method to wrap the body of an async function or method */
+    promises<ReturnT extends PayloadType>(args: any, callable: (reporter: Reporter) => Promise<ReturnT>): Promise<ReturnT> {
         this.onStart(args);
         try {
             return callable(this).then((returned: ReturnT) => {
@@ -268,6 +302,7 @@ export class Task implements Reporter {
         }
     }
 
+    /** Instrumented code may invoke this method to log information associated with this task */
     info(... messages: Array<string>) {
         const useLogger = (!this.logEnable || this.logEnable()) ? this.logger : undefined;
         if(useLogger) {
@@ -276,21 +311,21 @@ export class Task implements Reporter {
         return this;
     }
 
+    /** Instrumented code may invoke this method to log warnings associated with this task */
     warning(... messages: Array<string>) {
         const useLogger = (!this.logEnable || this.logEnable()) ? this.logger : undefined;
         if(useLogger) {
             messages.forEach((message: string) => useLogger(this.toLogLine('WARN  ', message)));
         }
-        this.warnings = [ ... this.warnings, ... messages];
         return this;
     }
 
+    /** Instrumented code may invoke this method to log errors associated with this task */
     error(... messages: Array<string>) {
         const useLogger = (!this.logEnable || this.logEnable()) ? this.logger : undefined;
         if(useLogger) {
             messages.forEach((message: string) => useLogger(this.toLogLine('ERROR ', message)));
         }
-        this.errors = [ ... this.errors, ... messages];
         return this;
     }
 
@@ -302,10 +337,7 @@ export class Task implements Reporter {
             ...this.status && { status: this.status },
             ...this.startTime && { startTime: this.startTime.toString() },
             ...this.endTime && { endTime: this.endTime.toString() },
-            warnings: this.warnings,
-            errors: this.errors,
             args: this.args,
-            kwargs: this.kwargs,
             ...this.returnValue && { returnValue: this.returnValue },
             ...this.exception && { exception: this.exception }
         }
@@ -318,10 +350,7 @@ export class Task implements Reporter {
         this.status = json.status;
         this.startTime = DateTime.fromISO(json.startTime);
         this.endTime = DateTime.fromISO(json.endTime);
-        this.warnings = json.warnings;
-        this.errors = json.errors;
         this.args = json.args;
-        this.kwargs = json.kwargs;
         this.returnValue = json.returnValue;
         this.exception = json.exception;
     }
@@ -336,7 +365,7 @@ export const method = (...deco_args: any[]) => (
   
     descriptor.value = function (...args: any[]) {
         const purpose = `${original.name}(${args.map((arg:any) => arg.toString()).join(", ")})`;
-        return new Task(purpose, ... deco_args).notifies(__tally__).returns(args, () => original.apply(this, args));
+        return new Instrument(purpose, ... deco_args).notifies(__tally__).returns(args, () => original.apply(this, args));
     };
   
     return descriptor;
