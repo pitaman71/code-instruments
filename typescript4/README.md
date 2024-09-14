@@ -8,6 +8,8 @@ and debug activities around performance optimization and functionality issues.
 Instruments are extra lines of code that we add to a program in order to support fine-grained
 measurement of performance and functional debug tracing.
 
+[Documentation]()
+
 # Proactive + Predictable + Durable Instrumentation
 
 In a typical coding methodology, code instruments are added at the last minute, driven by a 
