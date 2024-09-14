@@ -9,7 +9,9 @@
     "lib/**/*"
   ],
   "scripts": {
-    "doc": "typedoc src/index.ts",
+    "clean": "rm -rf package-lock.json node_modules",
+    "docs:build": "typedoc src/index.ts",
+    "docs:publish": "ts-node https://github.com/pitaman71/typescript-upload-docs/src/to-s3.ts",
     "build": "tsc",
     "start": "tsc -w",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
@@ -20,7 +22,8 @@
   "license": "ISC",
   "devDependencies": {
     "@types/luxon": "^1.26.4",
-    "@types/node": "^14.14.31",
+    "@types/node": "^22.5.4",
+    "node": "^22.8.0",
     "prettier": "^2.2.1",
     "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
