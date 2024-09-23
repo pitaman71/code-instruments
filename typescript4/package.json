@@ -1,6 +1,6 @@
 {
   "name": "typescript-code-instruments",
-  "version": "1.0.6",
+  "version": "1.0.12",
   "description": "Task logging library for typescript.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -11,7 +11,7 @@
   "scripts": {
     "clean": "rm -rf package-lock.json node_modules",
     "docs:build": "typedoc src/index.ts",
-    "docs:upload": "ts-node node_modules/typescript-upload-docs/lib/index",
+    "docs:upload": "tsx node_modules/typescript-upload-docs/lib/index",
     "build": "tsc",
     "start": "tsc -w",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
@@ -22,7 +22,6 @@
   "license": "ISC",
   "devDependencies": {
     "@types/luxon": "^1.26.4",
-    "@types/node": "^22.5.4",
     "node": "^22.8.0",
     "prettier": "^2.2.1",
     "ts-node": "^10.9.2",
@@ -30,7 +29,7 @@
     "tslint-config-prettier": "^1.18.0",
     "typedoc": "^0.26.7",
     "typescript": "^5.3.3",
-    "typescript-upload-docs": "^1.0.8"
+    "typescript-upload-docs": "^1.0.17"
   },
   "dependencies": {
     "@types/json-stringify-safe": "^5.0.3",
